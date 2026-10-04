@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#2e63f6">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Saathi">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <title>Saathi — Dosti ka Social App</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💙</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ================= AUTH SCREEN ================= -->
+  <div id="authScreen" class="auth-screen hidden">
+    <div class="auth-card">
+      <div class="auth-logo">💙</div>
+      <h1 class="auth-title">Saathi</h1>
+      <p class="auth-tagline">Dosti, posts aur private chats — sab ek jagah.</p>
+
+      <div class="auth-tabs">
+        <button id="tabLogin" class="auth-tab active" type="button">Login</button>
+        <button id="tabSignup" class="auth-tab" type="button">Sign Up</button>
+      </div>
+
+      <form id="loginForm" class="auth-form">
+        <input type="email" id="loginEmail" placeholder="Email" required autocomplete="email">
+        <input type="password" id="loginPassword" placeholder="Password" required autocomplete="current-password">
+        <button type="submit" class="btn btn-primary btn-block">Login</button>
+      </form>
+
+      <form id="signupForm" class="auth-form hidden">
+        <input type="text" id="signupName" placeholder="Full name" required maxlength="50">
+        <input type="email" id="signupEmail" placeholder="Email" required autocomplete="email">
+        <input type="password" id="signupPassword" placeholder="Password (min 6 characters)" required minlength="6" autocomplete="new-password">
+        <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= APP SHELL ================= -->
+  <div id="appScreen" class="hidden">
+    <header id="topbar">
+      <div class="topbar-inner">
+        <span class="topbar-logo" data-action="nav" data-target="#/home">💙 Saathi</span>
+        <button class="icon-btn" id="notifBtn" data-action="nav" data-target="#/friends" title="Friend requests">
+          🔔<span id="notifBadge" class="badge hidden"></span>
+        </button>
+      </div>
+    </header>
+
+    <div id="layout">
+      <aside id="leftbar" class="sidebar"></aside>
+      <main id="view"></main>
+      <aside id="rightbar" class="sidebar"></aside>
+    </div>
+
+    <nav id="bottomnav">
+      <button class="nav-item" data-action="nav" data-target="#/home"><span class="nav-ico">🏠</span><span class="nav-lbl">Home</span></button>
+      <button class="nav-item" data-action="nav" data-target="#/search"><span class="nav-ico">🔍</span><span class="nav-lbl">Search</span></button>
+      <button class="nav-item nav-add" data-action="open-compose"><span class="nav-add-circle">＋</span></button>
+      <button class="nav-item" data-action="nav" data-target="#/chats"><span class="nav-ico">💬</span><span class="nav-lbl">Chats</span><span id="chatBadge" class="badge hidden"></span></button>
+      <button class="nav-item" data-action="nav" data-target="#/profile"><span class="nav-ico">👤</span><span class="nav-lbl">Profile</span></button>
+    </nav>
+  </div>
+
+  <!-- ================= COMPOSE MODAL ================= -->
+  <div id="composeModal" class="modal-overlay hidden">
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <strong>Create Post</strong>
+        <button class="icon-btn" data-action="close-compose">✕</button>
+      </div>
+      <div id="composeUser" class="compose-user"></div>
+      <textarea id="composeText" rows="4" placeholder="What's on your mind?" maxlength="2000"></textarea>
+      <div id="composePreview" class="compose-preview hidden">
+        <img id="composePreviewImg" alt="preview">
+        <button class="preview-remove" data-action="remove-compose-image">✕</button>
+      </div>
+      <div class="compose-privacy" id="privacyChips">
+        <button class="chip active" data-action="set-privacy" data-privacy="public">🌍 Public</button>
+        <button class="chip" data-action="set-privacy" data-privacy="friends">👥 Friends</button>
+        <button class="chip" data-action="set-privacy" data-privacy="close">⭐ Close Friends</button>
+        <button class="chip" data-action="set-privacy" data-privacy="private">🔒 Only Me</button>
+      </div>
+      <div class="compose-actions">
+        <label class="btn btn-light">
+          📷 Photo
+          <input type="file" id="composeImage" accept="image/*" hidden>
+        </label>
+        <button class="btn btn-primary" id="postBtn" data-action="submit-post">Post</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= EDIT PROFILE MODAL ================= -->
+  <div id="editModal" class="modal-overlay hidden">
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <strong>Edit Profile</strong>
+        <button class="icon-btn" data-action="close-edit">✕</button>
+      </div>
+      <div class="edit-avatar-row">
+        <div id="editAvatarPreview" class="avatar avatar-lg"></div>
+        <label class="btn btn-light">📷 Change<input type="file" id="editAvatarInput" accept="image/*" hidden></label>
+      </div>
+      <input type="text" id="editName" placeholder="Full name" maxlength="50">
+      <input type="text" id="editBio" placeholder="Bio (e.g. Arts Hindi Medium)" maxlength="100">
+      <input type="text" id="editLocation" placeholder="Location (e.g. Bihar)" maxlength="50">
+      <button class="btn btn-primary btn-block" data-action="save-profile">Save</button>
+    </div>
+  </div>
+
+  <input type="file" id="avatarQuickInput" accept="image/*" hidden>
+  <input type="file" id="chatImageInput" accept="image/*" hidden>
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
