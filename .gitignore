@@ -1,0 +1,14 @@
+# build outputs
+android/app/build/
+android/.gradle/
+android/local.properties
+
+# firebase
+firebase-debug.log
+.firebaserc.local
+
+# os / editor
+.DS_Store
+Thumbs.db
+.vscode/
+node_modules/

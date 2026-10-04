@@ -1,0 +1,118 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+
+    // ---------- users & profiles ----------
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create: if uid() == userId;
+      allow update, delete: if uid() == userId;
+
+      // accepted friendships (both directions are stored)
+      match /friends/{friendId} {
+        allow read: if signedIn();
+        allow create: if validFriendship(userId, friendId);
+        allow delete: if uid() == userId || uid() == friendId;
+      }
+    }
+
+    // a friendship doc can only be created when an ACCEPTED request
+    // exists between exactly these two users, and I am one of them
+    function validFriendship(userId, friendId) {
+      let req = get(/databases/$(database)/documents/friendRequests/$(request.resource.data.rid)).data;
+      return signedIn()
+        && (uid() == userId || uid() == friendId)
+        && req.status == 'accepted'
+        && ((req.from == userId && req.to == friendId)
+         || (req.from == friendId && req.to == userId));
+    }
+
+    // ---------- friend requests ----------
+    match /friendRequests/{rid} {
+      allow read: if signedIn() && (uid() == resource.data.from || uid() == resource.data.to);
+      allow create: if signedIn()
+        && uid() == request.resource.data.from
+        && request.resource.data.from != request.resource.data.to
+        && request.resource.data.status == 'pending';
+      // only the RECEIVER can accept/reject, and only the status may change
+      allow update: if signedIn()
+        && uid() == resource.data.to
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['accepted', 'rejected'];
+      allow delete: if signedIn() && (uid() == resource.data.from || uid() == resource.data.to);
+    }
+
+    // ---------- posts ----------
+    match /posts/{postId} {
+      // public posts → everyone; anything else → only people in the audience list
+      allow read: if signedIn()
+        && (resource.data.privacy == 'public' || uid() in resource.data.audience);
+
+      allow create: if signedIn()
+        && uid() == request.resource.data.authorId
+        && request.resource.data.privacy in ['public', 'friends', 'close', 'private']
+        && uid() in request.resource.data.audience;
+
+      // author can edit; others may only bump like/comment counters
+      allow update: if signedIn() && (
+        uid() == resource.data.authorId ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount', 'commentCount'])
+      );
+
+      allow delete: if signedIn() && uid() == resource.data.authorId;
+
+      match /comments/{cid} {
+        allow read: if signedIn();
+        allow create: if signedIn() && uid() == request.resource.data.authorId;
+        allow delete: if signedIn() && (
+          uid() == resource.data.authorId ||
+          uid() == get(/databases/$(database)/documents/posts/$(postId)).data.authorId
+        );
+      }
+    }
+
+    // likes use a collection-group query, so they need the glob match
+    match /{path=**}/likes/{likeId} {
+      allow read: if signedIn();
+      allow create, delete: if signedIn() && uid() == likeId;
+    }
+
+    // ---------- chats (friends only!) ----------
+    function otherMember(members) {
+      return members[0] == uid() ? members[1] : members[0];
+    }
+
+    match /chats/{chatId} {
+      allow read: if signedIn() && uid() in resource.data.members;
+      // a chat can be created ONLY between two accepted friends
+      allow create: if signedIn()
+        && request.resource.data.members.size() == 2
+        && uid() in request.resource.data.members
+        && exists(/databases/$(database)/documents/users/$(otherMember(request.resource.data.members))/friends/$(uid()));
+      // members may only update the last-message preview + read-receipt + mode fields
+      allow update: if signedIn()
+        && uid() in resource.data.members
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastAt', 'lastSender', 'lastRead', 'mode']);
+      allow delete: if false;
+
+      match /messages/{mid} {
+        allow read: if signedIn()
+          && uid() in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+        // you can only send while you are still friends
+        allow create: if signedIn()
+          && uid() == request.resource.data.senderId
+          && uid() in get(/databases/$(database)/documents/chats/$(chatId)).data.members
+          && exists(/databases/$(database)/documents/users/$(otherMember(get(/databases/$(database)/documents/chats/$(chatId)).data.members))/friends/$(uid()));
+        allow update: if false;
+        // "girly mode" messages self-destruct — any chat member may delete them
+        allow delete: if signedIn()
+          && uid() in get(/databases/$(database)/documents/chats/$(chatId)).data.members
+          && resource.data.mode == 'girly';
+      }
+    }
+  }
+}

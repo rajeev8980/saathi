@@ -1,0 +1,16 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // images are fetched through download URLs; keep them readable.
+    // users can only upload into their OWN folder, images only, max 5 MB.
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && allPaths[0] in ['posts', 'avatars']
+        && allPaths[1] == request.auth.uid
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
