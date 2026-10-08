@@ -1,6 +1,6 @@
 // Saathi service worker — network-first so EVERY update shows instantly,
 // with offline fallback to the cached app shell.
-const CACHE = 'saathi-v1';
+const CACHE = 'saathi-v13';
 // relative paths so the PWA also works from a sub-path (GitHub Pages)
 const SHELL = [
   './',

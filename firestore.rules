@@ -107,11 +107,14 @@ service cloud.firestore {
           && uid() == request.resource.data.senderId
           && uid() in get(/databases/$(database)/documents/chats/$(chatId)).data.members
           && exists(/databases/$(database)/documents/users/$(otherMember(get(/databases/$(database)/documents/chats/$(chatId)).data.members))/friends/$(uid()));
-        allow update: if false;
-        // "girly mode" messages self-destruct — any chat member may delete them
+        // heart on a message (Instagram double-tap)
+        allow update: if signedIn()
+          && uid() in get(/databases/$(database)/documents/chats/$(chatId)).data.members
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hearts']);
+        // girly messages disappear for everyone; the sender can unsend any message
         allow delete: if signedIn()
           && uid() in get(/databases/$(database)/documents/chats/$(chatId)).data.members
-          && resource.data.mode == 'girly';
+          && (resource.data.mode == 'girly' || uid() == resource.data.senderId);
       }
     }
   }
